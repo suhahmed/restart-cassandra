@@ -1,71 +1,73 @@
 ---
   
-- name: Restart the Cassandra service on all the Cassandra nodes
-  hosts: cassandra
+- name: "Restart the {{ simility_service }} service on all the {{ simility_service }} nodes"
+  hosts: target_hosts
   gather_facts: false
   become_user: root
   become: true
 
   tasks:
 
-    - name: Check Cassandra status
-      shell: "netstat -tulpn | grep 7199"
-      register: cas_status
-      ignore_errors: true
+  - block:
 
-    - block :
+      - name: "Check {{ simility_service }} status"
+        shell: "netstat -tulpn | grep 7199"
+        register: cas_status
+        ignore_errors: true
 
-        - debug:
-            msg: "Cassandra service currently RUNNING"
+      - block :
 
-        - name: Shutting down Cassandra
-          shell: "bin/shutdown_cassandra.sh"
-          args:
-            chdir: "/opt/simility/"
+          - debug:
+              msg: "{{ simility_service }} service currently RUNNING"
 
-        - name: Starting Cassandra
-          shell: "bin/startup_cassandra.sh &"
-          args:
-            chdir: "/opt/simility/"
+          - name: "Shutting down {{ simility_service }}"
+            shell: "bin/shutdown_{{ simility_service }}.sh"
+            args:
+              chdir: "/opt/simility/"
 
-        - name: Waiting for Cassandra to Startup
-          wait_for:
-            port: 7199
-            delay: 3
-            state: started
-            timeout: 45
-          register: port_check
+          - name: "Starting {{ simility_service }}"
+            shell: "bin/startup_{{ simility_service }}.sh &"
+            args:
+              chdir: "/opt/simility/"
 
-        - debug:
-            msg: "Successfully {{ port_check.state }} Cassandra"
+          - name: "Waiting for {{ simility_service }} to Startup"
+            wait_for:
+              port: 7199
+              delay: 3
+              state: started
+              timeout: 45
+            register: port_check
 
-      when: cas_status.stdout != ""
+          - debug:
+              msg: "Successfully {{ port_check.state }} {{ simility_service }}"
 
-
-    - block :
-
-        - debug:
-            msg: "Cassandra service currently NOT RUNNING"
-
-        - debug:
-            msg: "Starting Cassandra"
-
-        - name: Startup Cassandra
-          shell: "bin/startup_cassandra.sh"
-          args:
-            chdir: "/opt/simility/"
-
-        - name: Waiting for Cassandra to Startup
-          wait_for:
-            port: 7199
-            delay: 3
-            state: started
-            timeout: 45
-          register: port_check
-
-        - debug:
-            msg: "Successfully {{ port_check.state }} Cassandra"
-
-      when: cas_status.stdout == ""
+        when: cas_status.stdout != ""
 
 
+      - block :
+
+          - debug:
+              msg: "{{ simility_service }} service currently NOT RUNNING"
+
+          - debug:
+              msg: "Starting {{ simility_service }}"
+
+          - name: "Startup {{ simility_service }}"
+            shell: "bin/startup_{{ simility_service }}.sh"
+            args:
+              chdir: "/opt/simility/"
+
+          - name: "Waiting for {{ simility_service }} to Startup"
+            wait_for:
+              port: 7199
+              delay: 3
+              state: started
+              timeout: 45
+            register: port_check
+
+          - debug:
+              msg: "Successfully {{ port_check.state }} {{ simility_service }}"
+
+        when: cas_status.stdout == "cassandra"
+
+    
